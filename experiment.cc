@@ -120,7 +120,7 @@ main(int argc, char* argv[])
     ParseConfigFile(configFile, configMap);
     // 设置节点数量
     nodeNum = std::stoi(configMap["opt(nn)"]);
-    nodeNum = 2;
+    nodeNum = 1;
     // 开始时间
     start = std::stod(configMap["opt(start)"]);
     // 设置duration
@@ -186,7 +186,7 @@ main(int argc, char* argv[])
     Ipv4AddressHelper address;
     address.SetBase("10.1.1.0", "255.255.255.0");
     address.Assign(vehicleDevices);
-    address.Assign(rsuDevices);
+    auto rsuInterfaces = address.Assign(rsuDevices);
 
     uint16_t rsuServerPort = 8080;
     uint16_t vehicleServerPort = 8081;
@@ -203,7 +203,7 @@ main(int argc, char* argv[])
     // 车辆应用
     for (uint32_t i = 0; i < nodeNum; i++)
     {
-        Ptr<VehicleApp> vehicleApp = CreateObject<VehicleApp>(rsuServerPort, rsuNodes, vehicleServerPort);
+        Ptr<VehicleApp> vehicleApp = CreateObject<VehicleApp>(rsuServerPort, rsuInterfaces.Get(0), vehicleServerPort);
         stas.Get(i)->AddApplication(vehicleApp);
         vehicleApp->SetStartTime(Seconds(start));
         vehicleApp->SetStopTime(Seconds(duration));

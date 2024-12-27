@@ -15,13 +15,13 @@ namespace ns3
 // 车辆应用
 class VehicleApp : public Application
 {
-  // RSU 服务端port
+  // RSU的服务端port
   uint16_t m_rsuServerPort;
-  // RSU节点
-  NodeContainer m_rsuNodes;
-  // 服务端port
+  // RSU的服务端IPv4地址
+  Ipv4Address m_rsuIpAddress;
+  // 车辆应用的服务端port
   uint16_t m_serverPort;
-  // 服务端socket
+  // 车辆应用的服务端socket
   Ptr<Socket> m_serverSocket;
   void StartApplication() override;
   void StopApplication() override;
@@ -30,7 +30,7 @@ class VehicleApp : public Application
 public:
   // Register this type，包含一些元数据
   static TypeId GetTypeId();
-  VehicleApp(uint16_t rsuServerPort, const NodeContainer& rsuNodes, uint16_t m_serverPort, const Time& m_delay);
+  VehicleApp(uint16_t rsuServerPort, const Ipv4Address & rsuIpAddress, uint16_t serverPort);
 };
 }
 #endif //VEHICLE_APP_H

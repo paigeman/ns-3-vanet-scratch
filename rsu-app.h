@@ -14,11 +14,11 @@ namespace ns3
 // RSU应用
 class RsuApp : public Application
 {
-  // 处理事件消息的服务端socket
+  // RSU应用的服务端socket
   Ptr<Socket> m_serverSocket;
-  // 处理事件消息的服务端port
+  // RSU应用的服务端port
   uint16_t m_serverPort;
-  // 车辆应用的端口
+  // 车辆应用的服务端端口
   uint16_t m_vehiclePort;
   void StartApplication() override;
   void StopApplication() override;

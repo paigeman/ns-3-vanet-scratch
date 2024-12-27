@@ -41,11 +41,11 @@ void VehicleApp::StopApplication()
 
 VehicleApp::
 VehicleApp(const uint16_t rsuServerPort,
-           const NodeContainer& rsuNodes,
-           const uint16_t m_serverPort)
+           const Ipv4Address & rsuIpAddress,
+           const uint16_t serverPort)
     : m_rsuServerPort(rsuServerPort),
-      m_rsuNodes(rsuNodes),
-      m_serverPort(m_serverPort)
+      m_rsuIpAddress(rsuIpAddress),
+      m_serverPort(serverPort)
 {
 }
 
