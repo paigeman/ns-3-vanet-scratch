@@ -2,24 +2,27 @@
 #include "rsu-app.h"
 #include "vehicle-app.h"
 
-#include "ns3/ssid.h"
 #include "ns3/core-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/ns2-mobility-helper.h"
+#include "ns3/ssid.h"
 #include "ns3/yans-wifi-helper.h"
 
 #include <sstream>
 
 using namespace ns3;
 
-NS_LOG_COMPONENT_DEFINE ("experiment");
+NS_LOG_COMPONENT_DEFINE("experiment");
 
 // 解析配置文件
-static void ParseConfigFile(const std::string &fileName, std::unordered_map<std::string, std::string> &configMap)
+static void
+ParseConfigFile(const std::string& fileName,
+                std::unordered_map<std::string, std::string>& configMap)
 {
     std::ifstream file(fileName);
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         std::cerr << "Error opening file: " << fileName << std::endl;
         return;
     }
@@ -51,7 +54,8 @@ static void ParseConfigFile(const std::string &fileName, std::unordered_map<std:
         std::string value;
         iss >> keyword;
         // 如果不是set打头直接跳过
-        if (keyword != "set") {
+        if (keyword != "set")
+        {
             continue;
         }
         iss >> key >> value;
@@ -61,14 +65,16 @@ static void ParseConfigFile(const std::string &fileName, std::unordered_map<std:
 }
 
 // OutputRsuLocation 输出RSU位置
-static void OutputRsuLocation(const NodeContainer & rsuNodes)
+static void
+OutputRsuLocation(const NodeContainer& rsuNodes)
 {
     for (uint32_t i = 0; i < rsuNodes.GetN(); ++i)
     {
         Ptr<MobilityModel> mobility = rsuNodes.Get(i)->GetObject<MobilityModel>();
         const Vector pos = mobility->GetPosition();
         std::ostringstream oss;
-        oss << "RSU " << i << " position: (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << std::endl;
+        oss << "RSU " << i << " position: (" << pos.x << ", " << pos.y << ", " << pos.z << ")"
+            << std::endl;
         NS_LOG_DEBUG(oss.str());
     }
 }
@@ -89,7 +95,7 @@ main(int argc, char* argv[])
     int rsuNum;
     double duration;
     double start;
-    double rss{-80};           // -dBm
+    double rss{-80}; // -dBm
 
     // Parse command line attribute
     CommandLine cmd(__FILE__);
@@ -203,7 +209,8 @@ main(int argc, char* argv[])
     // 车辆应用
     for (uint32_t i = 0; i < nodeNum; i++)
     {
-        Ptr<VehicleApp> vehicleApp = CreateObject<VehicleApp>(rsuServerPort, rsuInterfaces.Get(0), vehicleServerPort);
+        Ptr<VehicleApp> vehicleApp =
+            CreateObject<VehicleApp>(rsuServerPort, rsuInterfaces.GetAddress(0), vehicleServerPort);
         stas.Get(i)->AddApplication(vehicleApp);
         vehicleApp->SetStartTime(Seconds(start));
         vehicleApp->SetStopTime(Seconds(duration));
