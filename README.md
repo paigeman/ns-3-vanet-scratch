@@ -1,8 +1,10 @@
 # ns-3-vanet-scratch
 
+[中文](README_zh_CN.md)
+
 ## Introduction
 
-This repository can be used as a framework for developing Vanet.
+This repository can be used as a framework for developing VANET(Vehicular ad-hoc network).
 
 ## TOC
 
