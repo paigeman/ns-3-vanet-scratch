@@ -10,6 +10,8 @@
 #include "ns3/mobility-model.h"
 #include "ns3/simulator.h"
 #include "ns3/udp-socket-factory.h"
+
+#include <cstdint>
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("VehicleApp");
@@ -36,6 +38,7 @@ VehicleApp::StartApplication()
     m_serverSocket->SetRecvCallback(MakeCallback(&VehicleApp::HandleRead, this));
     // 调度发送
     Simulator::Schedule(Seconds(0), &VehicleApp::Send, this);
+    m_ipv4Address = GetNode()->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal();
 }
 
 void
@@ -62,6 +65,18 @@ VehicleApp::HandleRead(Ptr<Socket> socket) const
     Address from;
     if (Ptr<Packet> packet = socket->RecvFrom(from))
     {
+        auto ipv4Address = InetSocketAddress::ConvertFrom(from).GetIpv4();
+        std::ostringstream oss;
+        oss << Simulator::Now() << " Vehicle: Vehicle at " << m_ipv4Address
+            << " received a packet from RSU at " << ipv4Address;
+        NS_LOG_DEBUG(oss.str());
+        auto* buffer = new uint8_t[2];
+        packet->CopyData(buffer, 4);
+        oss.str("");
+        oss.clear();
+        oss << Simulator::Now() << " Vehicle: data in buffer is "
+            << *reinterpret_cast<uint32_t*>(buffer);
+        NS_LOG_DEBUG(oss.str());
     }
 }
 
@@ -83,11 +98,10 @@ VehicleApp::Send()
     // 发送给RSU
     socket->SendTo(packet, 0, remote);
     std::ostringstream oss;
-    oss << Simulator::Now() << ": "
+    oss << Simulator::Now() << " Vehicle: "
         << "Vehicle "
-        << " from " << GetNode()->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal()
-        << " sent an EventMessage to RSU "
-        << " at " << m_rsuIpAddress;
+        << "from " << m_ipv4Address << " sent a packet to RSU "
+        << "at " << m_rsuIpAddress;
     NS_LOG_DEBUG(oss.str());
     socket->Close();
 }

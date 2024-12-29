@@ -23,6 +23,8 @@ class VehicleApp : public Application
     uint16_t m_serverPort;
     // 车辆应用的服务端socket
     Ptr<Socket> m_serverSocket;
+    // 车辆的IPv4地址
+    Ipv4Address m_ipv4Address;
     void StartApplication() override;
     void StopApplication() override;
     // 处理来自RSU的消息
