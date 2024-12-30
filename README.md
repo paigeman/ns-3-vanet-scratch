@@ -4,7 +4,7 @@
 
 ## Introduction
 
-This repository can be used as a framework for developing VANET(Vehicular ad-hoc network).
+This repository can be used as a framework for developing VANET(Vehicular ad-hoc network) using ns-3.
 
 ## TOC
 

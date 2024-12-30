@@ -4,7 +4,7 @@
 
 ## 介绍
 
-这个仓库可以用作开发VANET（Vehicular ad-hoc network，车载自组织网络）的框架。
+这个仓库可以用作使用 ns-3 开发VANET（Vehicular ad-hoc network，车载自组织网络）的框架。
 
 ## 目录
 
