@@ -34,6 +34,7 @@ Then you can replace the values of `traceFile` and `configFile` in `.vscode/sett
 The part where the parameters `traceFile` and `configFile` are defined and parsed in the code `experiment.cc` is:
 
 ```cpp
+// experiment.cc
 std::string traceFile;
 std::string configFile;
 CommandLine cmd(__FILE__);
@@ -117,7 +118,7 @@ The `duration` can also be considered the simulation end time, as the start time
 
 The parsing of `traceFile` will not be elaborated further, as this process is coupled with the configuration of the mobility model.
 
-## How to set the number of RSU
+## How to set the number of RSUs
 
 Originally, the plan was to set the number of RSUs by passing a command-line argument to the program. However, considering that having multiple RSUs would require designing a more reasonable placement strategy, the decision was made to simplify the scenario. Because a reasonable RSU placement strategy would not only involve determining optimal RSU positions but also selecting an appropriate communication propagation model.
 
@@ -126,6 +127,7 @@ Therefore, although `rsuNum` is defined in `experiment.cc` to accept command-lin
 In other words, you are required to pass the `rsuNum` parameter via the command line, but the value you provide will have no effect. Users are free to modify this logic if desired.
 
 ```cpp
+// experiment.cc
 int rsuNum;
 cmd.AddValue("rsuNum", "Number of RSUs", rsuNum);
 cmd.Parse(argc, argv);
@@ -137,6 +139,7 @@ rsuNum = 1;
 The following code configures the mobility model for vehicles and creates the node container:
 
 ```cpp
+// experiment.cc
 // Create Ns2MobilityHelper with the specified trace log file as parameter
 auto ns2 = Ns2MobilityHelper(traceFile);
 // Must add the following two lines code
@@ -149,6 +152,7 @@ ns2.Install(); // configure movements for each node, while reading trace file
 The following code configures the mobility model for RSUs and creates the node container:
 
 ```cpp
+// experiment.cc
 // 配置RSU的移动模型
 double minX = std::stod(configMap["opt(min-x)"]);
 double minY = std::stod(configMap["opt(min-y)"]);
@@ -179,9 +183,10 @@ Of course, you can also use other position allocators, such as replacing `ListPo
 
 The relevant references are 18 to 26.
 
-## How to configure channels and physical layers
+## How to configure channel and physical layer
 
 ```cpp
+// experiment.cc
 YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
 channel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
 channel.AddPropagationLoss("ns3::FixedRssLossModel", "Rss", DoubleValue(rss));
@@ -190,7 +195,66 @@ YansWifiPhyHelper phy;
 // set it to zero; otherwise, gain will be added
 phy.Set("RxGain", DoubleValue(0));
 phy.SetChannel(channel.Create());
+WifiHelper wifi;
+wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager",
+                                "DataMode",
+                                StringValue("OfdmRate6Mbps"),
+                                "ControlMode",
+                                StringValue("OfdmRate6Mbps"));
 ```
+
+In the code above, `ConstantSpeedPropagationDelayModel` is the propagation delay model, `FixedRssLossModel` is the propagation loss model, `ConstantRateWifiManager` is the rate manager, and `OfdmRate6Mbps` indicates that the channel bandwidth is 6 Mbps. These parameters usually have default values if not specified. To find out about the default values, there are generally two approaches: one is to look at the code, and the other is to consult the documentation. Taking `YansWifiChannelHelper` as an example, Ref. 27 briefly mentions what its default propagation loss model and propagation delay model are.
+
+> By default, we create a channel model with a propagation delay equal to a constant, the speed of light, and a propagation loss based on a log distance model with a reference loss of 46.6777 dB at reference distance of 1m.
+
+In Ref. 28, it explicitly states what its default propagation loss model and propagation delay model are.
+
+> Specifically, the default is a channel model with a propagation delay equal to a constant, the speed of light (ns3::ConstantSpeedPropagationDelayModel), and a propagation loss based on a default log distance model (ns3::LogDistancePropagationLossModel), using a default exponent of 3. Please note that the default log distance model is configured with a reference loss of 46.6777 dB at reference distance of 1m.
+
+As for which propagation loss models and propagation delay models are implemented in ns-3, you can refer to Ref. 29.
+
+If you want to change the propagation model, you just need to change the corresponding value in the code to the one you wish to use, for example, changing `ns3::ConstantSpeedPropagationDelayModel` to `ns3::RandomPropagationDelayModel` .
+
+Each propagation model also has configurable attributes; take `FixedRssLossModel` as an example. You can find the attributes that can be set in the `Detailed Description` section of reference 30. Typically, these can also be obtained by looking at the `GetTypeId` function of the corresponding code:
+
+```cpp
+// experiment.cc
+TypeId
+FixedRssLossModel::GetTypeId()
+{
+    static TypeId tid = TypeId("ns3::FixedRssLossModel")
+                            .SetParent<PropagationLossModel>()
+                            .SetGroupName("Propagation")
+                            .AddConstructor<FixedRssLossModel>()
+                            .AddAttribute("Rss",
+                                          "The fixed receiver Rss.",
+                                          DoubleValue(-150.0),
+                                          MakeDoubleAccessor(&FixedRssLossModel::m_rss),
+                                          MakeDoubleChecker<double>());
+    return tid;
+}
+```
+
+Among them, `Rss` in the `AddAttribute` is an attribute that is allowed to be set, and this determines what string identifier you should use when setting the attribute. Note that this method also applies to other classes that have a `GetTypeId` function. When you need to set attributes through their `set` methods or the `SetAttribute` method of a `Ptr`, you either have to consult the documentation to find the settable attributes or look into the code.
+
+As for the value of `RxGain`, this also depends on the propagation model used.
+
+The default value of `ConstantRateWifiManager` is `OfdmRate6Mbps`, meaning the channel bandwidth is 6 Mbps. If you want to verify whether it is indeed 6 Mbps, you can enable pcap in the code:
+
+```cpp
+// experiment.cc
+phy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
+phy.EnablePcap("experiment", vehicleDevices.Get(0));
+phy.EnablePcap("experiment", rsuDevices.Get(0));
+```
+
+Then, open the generated file with Wireshark, select a packet, and examine the corresponding fields at the Physical layer:
+
+![image](resources/ce4d45909eddcab75882ce1e2ac26c3c4401be61ebd005f3464e64798eeb014f.png)
+
+If you want to change the channel bandwidth, you can modify the values of `DataMode` and `ControlMode`. However, the rates permitted by each IEEE 802.11 standard are predefined, for which you can refer to reference 31. Regarding the representation of each rate in the code, the author has not found any documentation that fully and accurately describes this point, but you can take a look at reference 32, which provides some description. Alternatively, readers can examine the class `WifiPhy` and other parts of the code to see if they can find corresponding rules.
+
+## How to configure the data link layer
 
 ## References
 
@@ -220,3 +284,9 @@ phy.SetChannel(channel.Create());
 24. [RSU (road side unit) implementation in VANET using ns-3](https://groups.google.com/g/ns-3-users/c/GU5yhRKYKwc)
 25. [物联网与无线网络实验资源](https://github.com/sdsxpln/IoTWNT)
 26. [ns3::PositionAllocator Class Reference](https://www.nsnam.org/docs/release/3.42/doxygen/df/d7b/classns3_1_1_position_allocator.html)
+27. [Default()](https://www.nsnam.org/docs/release/3.42/doxygen/de/d95/classns3_1_1_yans_wifi_channel_helper.html#abf7de2e0916e7188a8434a363cb96183)
+28. [34.2.1.1. YansWifiChannelHelper](https://www.nsnam.org/docs/models/html/wifi-user.html#yanswifichannelhelper)
+29. [28. Propagation](https://www.nsnam.org/docs/models/html/propagation.html)
+30. [Detailed Description](https://www.nsnam.org/docs/release/3.42/doxygen/d0/d39/classns3_1_1_fixed_rss_loss_model.html#details)
+31. [802.11物理层技术讲解](https://blog.csdn.net/weixin_42353331/article/details/86504529)
+32. [transmission rate](https://groups.google.com/g/ns-3-users/c/ymNOB59mNqU/m/n8GvsoY95MYJ)

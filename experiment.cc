@@ -177,10 +177,14 @@ main(int argc, char* argv[])
     // set it to zero; otherwise, gain will be added
     phy.Set("RxGain", DoubleValue(0));
     phy.SetChannel(channel.Create());
+    WifiHelper wifi;
+    wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager",
+                                 "DataMode",
+                                 StringValue("OfdmRate6Mbps"),
+                                 "ControlMode",
+                                 StringValue("OfdmRate6Mbps"));
     // 数据链路层
     WifiMacHelper mac;
-    Ssid ssid = Ssid("experiment");
-    WifiHelper wifi;
     mac.SetType("ns3::AdhocWifiMac");
     NetDeviceContainer vehicleDevices = wifi.Install(phy, mac, stas);
     NetDeviceContainer rsuDevices = wifi.Install(phy, mac, rsuNodes);
@@ -217,6 +221,10 @@ main(int argc, char* argv[])
     }
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+
+    phy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
+    phy.EnablePcap("experiment", vehicleDevices.Get(0));
+    phy.EnablePcap("experiment", rsuDevices.Get(0));
 
     Simulator::Stop(Seconds(duration));
     Simulator::Run();

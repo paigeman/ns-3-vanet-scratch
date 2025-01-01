@@ -99,6 +99,10 @@ The ns-3 official offers coding styles, you can install some plugins and enable 
 
 ![image](resources/399159463-66e01305-de48-4232-8821-b1d806e6895c.png)
 
+However, if both `clangd` and `Clang-Format` are installed simultaneously, the formatter may not work properly because there are two formatters. Here, you can select a default formatter:
+
+![image](resources/020a7be81569489c4da75d16183f6d6eff66797ba444c75cd817c0aea4b63d37.png)
+
 ### How to pass environment variables and program arguments to the program in Visual Studio Code while using CMake
 
 Add the following configuration to `.vscode/settings.json` :

@@ -99,6 +99,10 @@ ns-3 官方提供了编码风格，你可以安装以下插件来启用并在设
 
 ![image](resources/399159463-66e01305-de48-4232-8821-b1d806e6895c.png)
 
+但是如果同时安装了 `clangd` 和 `Clang-Format` ，可能会出现 formatter 无法正常工作的情况，因为这里有两个 formatter 。这里可以选择一个默认的 formatter ：
+
+![image](resources/020a7be81569489c4da75d16183f6d6eff66797ba444c75cd817c0aea4b63d37.png)
+
 ### 在使用 CMake 时如何在 Visual Studio Code 里传递环境变量和程序参数给程序
 
 往 `.vscode/settings.json` 里添加以下配置：

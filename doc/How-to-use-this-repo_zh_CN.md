@@ -34,6 +34,7 @@ python traceExporter.py --fcd-input sumoTrace.xml --ns2mobility-output ns2mobili
 `traceFile` 和 `configFile` 这两个参数在代码 `experiment.cc` 中定义和解析的部分是：
 
 ```cpp
+// experiment.cc
 std::string traceFile;
 std::string configFile;
 CommandLine cmd(__FILE__);
@@ -121,6 +122,7 @@ ParseConfigFile(const std::string& fileName,
 本来是打算通过传递命令行参数给程序设置 RSU 的数量，但是考虑到如果有多个 RSU ，要设计一个比较合理的 RSU 放置方案。不仅需要合理的放置 RSU ，还要选择合适的通信传播模型。所以虽然在 `experiment.cc` 中设置了 `rsuNum` 接受命令行参数的传递，但为了简单考虑，在后面的代码中强制设置了 `rsuNum` 的值为1，即只有一个 RSU 。也就是说你必须传递命令行参数给 `rsuNum` ，但你传递的参数没有作用。关于这一个逻辑，用户可以自行修改。
 
 ```cpp
+// experiment.cc
 int rsuNum;
 cmd.AddValue("rsuNum", "Number of RSUs", rsuNum);
 cmd.Parse(argc, argv);
@@ -132,6 +134,7 @@ rsuNum = 1;
 这里的代码是车辆的移动模型的配置和节点容器的创建：
 
 ```cpp
+// experiment.cc
 // Create Ns2MobilityHelper with the specified trace log file as parameter
 auto ns2 = Ns2MobilityHelper(traceFile);
 // Must add the following two lines code
@@ -144,6 +147,7 @@ ns2.Install(); // configure movements for each node, while reading trace file
 这里的代码是 RSU 的移动模型的配置和节点容器的创建：
 
 ```cpp
+// experiment.cc
 // 配置RSU的移动模型
 double minX = std::stod(configMap["opt(min-x)"]);
 double minY = std::stod(configMap["opt(min-y)"]);
@@ -175,6 +179,7 @@ RSU 的移动模型被配置为静止不动的，即 `ConstantPositionMobilityMo
 ## 如何配置信道和物理层
 
 ```cpp
+// experiment.cc
 YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
 channel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
 channel.AddPropagationLoss("ns3::FixedRssLossModel", "Rss", DoubleValue(rss));
@@ -183,4 +188,63 @@ YansWifiPhyHelper phy;
 // set it to zero; otherwise, gain will be added
 phy.Set("RxGain", DoubleValue(0));
 phy.SetChannel(channel.Create());
+WifiHelper wifi;
+wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager",
+                                "DataMode",
+                                StringValue("OfdmRate6Mbps"),
+                                "ControlMode",
+                                StringValue("OfdmRate6Mbps"));
 ```
+
+上面的代码中 `ConstantSpeedPropagationDelayModel` 是传播延迟模型， `FixedRssLossModel` 是传播损失模型， `ConstantRateWifiManager` 是速率管理器， `OfdmRate6Mbps` 则表述信道带宽是6Mbps。这些参数如果不指定，一般会有默认值。关于默认值怎么查看，一般有两种方式，一是看代码，二是看文档。以 `YansWifiChannelHelper` 为例，参考文献27简要的提到了它默认的传播损失模型和传播延迟模型是什么。
+
+> By default, we create a channel model with a propagation delay equal to a constant, the speed of light, and a propagation loss based on a log distance model with a reference loss of 46.6777 dB at reference distance of 1m.
+
+在参考文献28中，更是直接写明了它默认的传播损失模型和传播延迟模型是什么。
+
+> Specifically, the default is a channel model with a propagation delay equal to a constant, the speed of light (ns3::ConstantSpeedPropagationDelayModel), and a propagation loss based on a default log distance model (ns3::LogDistancePropagationLossModel), using a default exponent of 3. Please note that the default log distance model is configured with a reference loss of 46.6777 dB at reference distance of 1m.
+
+至于 ns-3 实现了哪些传播损失模型和传播延迟模型，可以看参考文献29。
+
+如果想要更换传播模型，只需要把代码中对应的值改成你想要更换的值即可，比如把 `ns3::ConstantSpeedPropagationDelayModel` 改成 `ns3::RandomPropagationDelayModel` 。
+
+每个传播模型也有所允许设置的属性，以 `FixedRssLossModel` 为例，可以在参考文献30的 `Detailed Description` 部分找到可以设置的属性。一般这种还可以通过查看对应代码的 `GetTypeId` 函数获取：
+
+```cpp
+// experiment.cc
+TypeId
+FixedRssLossModel::GetTypeId()
+{
+    static TypeId tid = TypeId("ns3::FixedRssLossModel")
+                            .SetParent<PropagationLossModel>()
+                            .SetGroupName("Propagation")
+                            .AddConstructor<FixedRssLossModel>()
+                            .AddAttribute("Rss",
+                                          "The fixed receiver Rss.",
+                                          DoubleValue(-150.0),
+                                          MakeDoubleAccessor(&FixedRssLossModel::m_rss),
+                                          MakeDoubleChecker<double>());
+    return tid;
+}
+```
+
+其中 `AddAttribute` 中的 `Rss` 就是所允许设置的属性，这也决定了你在设置属性时要使用什么字符串标识。注意，这种方法对于其它有 `GetTypeId` 函数的类也是适用的。当你需要通过它们的 `set` 方法或者 `Ptr` 的 `SetAttribute` 方法设置属性时，要么就是去看文档找可以设置的属性，要么就是看代码。
+
+至于 `RxGain` 的值，这个也和使用的传播模型有关。
+
+`ConstantRateWifiManager` 的默认值便是 `OfdmRate6Mbps` ，也即信道带宽是6Mbps。如果想要验证是否是6Mbps，可以在代码中开启 pcap ：
+
+```cpp
+// experiment.cc
+phy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
+phy.EnablePcap("experiment", vehicleDevices.Get(0));
+phy.EnablePcap("experiment", rsuDevices.Get(0));
+```
+
+再用 Wireshark 打开生成的文件选择一个数据包后查看物理层对应字段：
+
+![image](resources/ce4d45909eddcab75882ce1e2ac26c3c4401be61ebd005f3464e64798eeb014f.png)
+
+如果想要更换信道带宽，可以更换 `DataMode` 和 `ControlMode` 的值。但是 IEEE 802.11 每种标准所允许使用的速率是规定好了的，这一点可以参考参考文献31。至于每种速率在代码中的表示，笔者没有找到有相关文档完整准确的描述了这一点，但是可以看看参考文献32，这里稍微有些描述。或者读者可以看看类 `WifiPhy` 和其它代码，看看是否能从中找到对应的规则。
+
+## 如何配置数据链路层
