@@ -248,3 +248,72 @@ phy.EnablePcap("experiment", rsuDevices.Get(0));
 如果想要更换信道带宽，可以更换 `DataMode` 和 `ControlMode` 的值。但是 IEEE 802.11 每种标准所允许使用的速率是规定好了的，这一点可以参考参考文献31。至于每种速率在代码中的表示，笔者没有找到有相关文档完整准确的描述了这一点，但是可以看看参考文献32，这里稍微有些描述。或者读者可以看看类 `WifiPhy` 和其它代码，看看是否能从中找到对应的规则。
 
 ## 如何配置数据链路层
+
+```cpp
+// experiment.cc
+WifiMacHelper mac;
+mac.SetType("ns3::AdhocWifiMac");
+NetDeviceContainer vehicleDevices = wifi.Install(phy, mac, stas);
+NetDeviceContainer rsuDevices = wifi.Install(phy, mac, rsuNodes);
+```
+
+注意，这里 MAC 层的类型用的是 `AdhocWifiMac` 。如果不是这个类型，网络可能会无法通信。
+
+## 如何配置网络层
+
+```cpp
+// experiment.cc
+InternetStackHelper stack;
+stack.Install(stas);
+stack.Install(rsuNodes);
+// 分配IP地址 一般来说够了
+Ipv4AddressHelper address;
+address.SetBase("10.1.1.0", "255.255.255.0");
+address.Assign(vehicleDevices);
+auto rsuInterfaces = address.Assign(rsuDevices);
+Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+```
+
+上面的代码中，唯一可能需要变动的地方是分配 IPv4 地址。一般来说 `Ipv4AddressHelper` 的 `SetBase` 方法的参数要根据你的仿真实验的规模来设置，要确保 IPv4 地址足够分配。第一个参数是网络号，第二个参数是子网掩码。
+
+## 如何把应用安装在节点上
+
+```cpp
+// experiment.cc
+uint16_t rsuServerPort = 8080;
+uint16_t vehicleServerPort = 8081;
+
+// RSU应用
+for (int i = 0; i < rsuNum; ++i)
+{
+    Ptr<RsuApp> rsuApp = CreateObject<RsuApp>(rsuServerPort, vehicleServerPort);
+    rsuNodes.Get(i)->AddApplication(rsuApp);
+    rsuApp->SetStartTime(Seconds(start));
+    rsuApp->SetStopTime(Seconds(duration));
+}
+
+// 车辆应用
+for (uint32_t i = 0; i < nodeNum; i++)
+{
+    Ptr<VehicleApp> vehicleApp =
+        CreateObject<VehicleApp>(rsuServerPort, rsuInterfaces.GetAddress(0), vehicleServerPort);
+    stas.Get(i)->AddApplication(vehicleApp);
+    vehicleApp->SetStartTime(Seconds(start));
+    vehicleApp->SetStopTime(Seconds(duration));
+}
+```
+
+上面这段代码的意思就是每个车辆节点上都安装 `VehicleApp` 和每个 RSU 节点上都安装 `RsuApp` ，并设置每个应用的开始和结束时间。 `VehicleApp` 和 `RsuApp` 都是自定义的应用。
+
+注意在 ns-3 中，应用是必须要安装在节点上的，即使这个节点没有分配 IPv4 地址和配置网络栈。对于一些必须在仿真期间一直执行的逻辑，比如说事件的生成，可以考虑定义一个应用并安装在节点上。
+
+## 如何开始仿真
+
+```cpp
+// experiment.cc
+Simulator::Stop(Seconds(duration));
+Simulator::Run();
+Simulator::Destroy();
+```
+
+## 如何自定义应用

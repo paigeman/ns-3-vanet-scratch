@@ -256,6 +256,75 @@ If you want to change the channel bandwidth, you can modify the values of `DataM
 
 ## How to configure the data link layer
 
+```cpp
+// experiment.cc
+WifiMacHelper mac;
+mac.SetType("ns3::AdhocWifiMac");
+NetDeviceContainer vehicleDevices = wifi.Install(phy, mac, stas);
+NetDeviceContainer rsuDevices = wifi.Install(phy, mac, rsuNodes);
+```
+
+Note, the type of the MAC layer used here is `AdhocWifiMac`. If it's not this type, the network might fail to communicate.
+
+## How to configure the network layer
+
+```cpp
+// experiment.cc
+InternetStackHelper stack;
+stack.Install(stas);
+stack.Install(rsuNodes);
+// 分配IP地址 一般来说够了
+Ipv4AddressHelper address;
+address.SetBase("10.1.1.0", "255.255.255.0");
+address.Assign(vehicleDevices);
+auto rsuInterfaces = address.Assign(rsuDevices);
+Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+```
+
+In the code above, the only part that might need to be changed is the assignment of IPv4 addresses. Generally, the parameters of the `SetBase` method of `Ipv4AddressHelper` should be set according to the scale of your simulation experiment, ensuring that there are enough IPv4 addresses to be allocated. The first parameter is the network number, and the second parameter is the subnet mask.
+
+## How to install applications on nodes
+
+```cpp
+// experiment.cc
+uint16_t rsuServerPort = 8080;
+uint16_t vehicleServerPort = 8081;
+
+// RSU应用
+for (int i = 0; i < rsuNum; ++i)
+{
+    Ptr<RsuApp> rsuApp = CreateObject<RsuApp>(rsuServerPort, vehicleServerPort);
+    rsuNodes.Get(i)->AddApplication(rsuApp);
+    rsuApp->SetStartTime(Seconds(start));
+    rsuApp->SetStopTime(Seconds(duration));
+}
+
+// 车辆应用
+for (uint32_t i = 0; i < nodeNum; i++)
+{
+    Ptr<VehicleApp> vehicleApp =
+        CreateObject<VehicleApp>(rsuServerPort, rsuInterfaces.GetAddress(0), vehicleServerPort);
+    stas.Get(i)->AddApplication(vehicleApp);
+    vehicleApp->SetStartTime(Seconds(start));
+    vehicleApp->SetStopTime(Seconds(duration));
+}
+```
+
+The meaning of the code snippet above is to install `VehicleApp` on each vehicle node and `RsuApp` on each RSU node, and to set the start and stop times for each application. Both `VehicleApp` and `RsuApp` are custom-defined applications.
+
+Note that in ns-3, applications must be installed on nodes, even if the node has not been assigned an IPv4 address or configured with a network stack. For logic that needs to run continuously during the simulation, such as event generation, you might consider defining an application and installing it on the node.
+
+## How to start simulation
+
+```cpp
+// experiment.cc
+Simulator::Stop(Seconds(duration));
+Simulator::Run();
+Simulator::Destroy();
+```
+
+## How to customize an application
+
 ## References
 
 1. [SUMO 从入门到基础 SUMO入门一篇就够了](https://blog.csdn.net/qilie_32/article/details/127201612)
