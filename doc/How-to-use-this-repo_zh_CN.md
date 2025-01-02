@@ -386,7 +386,6 @@ VehicleApp::VehicleApp(const uint16_t rsuServerPort,
 // experiment.cc
 Ptr<VehicleApp> vehicleApp =
             CreateObject<VehicleApp>(rsuServerPort, rsuInterfaces.GetAddress(0), vehicleServerPort);
-        stas.Get(i)->AddApplication(vehicleApp);
 ```
 
 这行代码是会去找到匹配的构造函数的，如果找不到就会报错。
