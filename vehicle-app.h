@@ -4,8 +4,6 @@
 
 #ifndef VEHICLE_APP_H
 #define VEHICLE_APP_H
-#include "unordered_set"
-
 #include "ns3/application.h"
 #include "ns3/node-container.h"
 #include "ns3/socket.h"

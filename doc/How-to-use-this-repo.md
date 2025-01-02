@@ -325,6 +325,106 @@ Simulator::Destroy();
 
 ## How to customize an application
 
+A custom application needs to inherit from the `Application` class, which is defined in the header file `ns3/application.h`.
+
+Users need to implement custom logic within their custom application. Typically, user-defined logic can either be called directly within the inherited `StartApplication` function or invoked through setting up a series of callback functions within the inherited `StartApplication` function. The former is straightforward, but we will focus on the latter.
+
+This callback mechanism can roughly be divided into two categories: one that is triggered at timed intervals and another that is triggered by events.
+
+Timed triggers are generally implemented using some static member functions provided by the `Simulator` class in `ns3/simulator.h`. For specific functions available, you can refer to reference 33. Below is an example:
+
+```cpp
+// vehicle-app.cc
+void
+VehicleApp::StartApplication()
+{
+    ...
+    // 调度发送
+    Simulator::Schedule(Seconds(0), &VehicleApp::Send, this);
+    ...
+}
+```
+
+Event-triggered callbacks are generally available only in certain specific classes, such as the `Socket` class found in the `ns3/socket.h` header file that we commonly use. This class provides functions like `SetRecvCallback`, which can invoke the set callback functions when different events occur. To find out what other similar member functions the `Socket` class offers, you can refer to reference 34; they usually start with `Set` and end with `Callback`. Below is an example:
+
+```cpp
+// vehicle-app.cc
+void
+VehicleApp::StartApplication()
+{
+    ...
+    m_serverSocket->SetRecvCallback(MakeCallback(&VehicleApp::HandleRead, this));
+    ...
+}
+```
+
+A custom application usually needs to override these member functions from its parent class: `StartApplication`, `StopApplication`, and `GetTypeId`. Among these, the last one, `GetTypeId`, typically only requires adding some metadata. You will find that many custom classes can override this function when inheriting from ns-3 provided classes. A fairly common way to write this is:
+
+```cpp
+// vehicle-app.cc
+TypeId
+VehicleApp::GetTypeId()
+{
+    static TypeId tid =
+        TypeId("ns3::VehicleApp").SetParent<Application>().SetGroupName("experiment");
+    return tid;
+}
+```
+
+That is, specify which parent class it is in the template parameter of the `SetParent` function and indicate what the group name is in the parameter of the `SetGroupName` function. The group name can be customized; generally, one group name per experiment is sufficient.
+
+Additionally, a custom application needs to provide an appropriate constructor. Here is an example of a constructor:
+
+```cpp
+// vehicle-app.cc
+VehicleApp::VehicleApp(const uint16_t rsuServerPort,
+                       const Ipv4Address& rsuIpAddress,
+                       const uint16_t serverPort)
+    : m_rsuServerPort(rsuServerPort),
+      m_rsuIpAddress(rsuIpAddress),
+      m_serverPort(serverPort)
+{
+}
+```
+
+It will affect the code you use to create it:
+
+```cpp
+// experiment.cc
+Ptr<VehicleApp> vehicleApp =
+            CreateObject<VehicleApp>(rsuServerPort, rsuInterfaces.GetAddress(0), vehicleServerPort);
+        stas.Get(i)->AddApplication(vehicleApp);
+```
+
+This line of code will attempt to find a matching constructor, and if it cannot find one, it will result in an error.
+
+## How to customize data format
+
+This repository provides three ways to carry data:
+
+* Writing data directly to the buffer inside a `Packet`
+* Customizing a `Header`
+* Customizing a `Tag`
+
+### Writing data directly to the buffer inside a `Packet`
+
+```cpp
+// rsu-app.cc
+uint32_t data = 4399;
+auto buffer = reinterpret_cast<uint8_t*>(&data);
+packet = Create<Packet>(buffer, 4);
+```
+
+This approach is generally not suitable for data with a more complex structure, unless you can provide your own serialization and deserialization methods. In the code above, `reinterpret_cast` is used to convert the address of `data` into a `uint8_t*` format because the `Packet` constructor requires this format.
+
+Extracting data from a `Packet`:
+
+```cpp
+// vehicle-app.cc
+auto* buffer = new uint8_t[4];
+packet->CopyData(buffer, 4);
+```
+
 ## References
 
 1. [SUMO 从入门到基础 SUMO入门一篇就够了](https://blog.csdn.net/qilie_32/article/details/127201612)
@@ -359,3 +459,5 @@ Simulator::Destroy();
 30. [Detailed Description](https://www.nsnam.org/docs/release/3.42/doxygen/d0/d39/classns3_1_1_fixed_rss_loss_model.html#details)
 31. [802.11物理层技术讲解](https://blog.csdn.net/weixin_42353331/article/details/86504529)
 32. [transmission rate](https://groups.google.com/g/ns-3-users/c/ymNOB59mNqU/m/n8GvsoY95MYJ)
+33. [ns3::Simulator Class Reference](https://www.nsnam.org/docs/release/3.42/doxygen/dd/de5/classns3_1_1_simulator.html)
+34. [ns3::Socket Class Reference](https://www.nsnam.org/docs/release/3.42/doxygen/d8/db5/classns3_1_1_socket.html)

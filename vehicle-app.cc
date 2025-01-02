@@ -70,13 +70,14 @@ VehicleApp::HandleRead(Ptr<Socket> socket) const
         oss << Simulator::Now() << " Vehicle: Vehicle at " << m_ipv4Address
             << " received a packet from RSU at " << ipv4Address;
         NS_LOG_DEBUG(oss.str());
-        auto* buffer = new uint8_t[2];
+        auto* buffer = new uint8_t[4];
         packet->CopyData(buffer, 4);
         oss.str("");
         oss.clear();
         oss << Simulator::Now() << " Vehicle: data in buffer is "
             << *reinterpret_cast<uint32_t*>(buffer);
         NS_LOG_DEBUG(oss.str());
+        delete[] buffer;
     }
 }
 

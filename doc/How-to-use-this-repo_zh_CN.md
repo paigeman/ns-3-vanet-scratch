@@ -317,3 +317,171 @@ Simulator::Destroy();
 ```
 
 ## 如何自定义应用
+
+自定义应用需要继承 `Application` 类，这个类在 `ns3/application.h` 头文件中。
+
+用户需要自定义逻辑在自定义应用中。一般来说，用户自定义的逻辑，要么在继承得来的 `StartApplication` 函数里直接被调用，要么在继承得来的 `StartApplication` 函数里通过设置一系列回调函数从而被调用。前者浅显易懂，我们主要关注后者。
+
+这种回调机制也大概可以分为两类：一类是定时触发，一类是事件触发。
+
+定时触发一般通过 `ns3/simulator.h` 中的 `Simulator` 类提供的一些静态成员函数实现，具体有哪些函数可以阅读参考文献33，下面是一个例子：
+
+```cpp
+// vehicle-app.cc
+void
+VehicleApp::StartApplication()
+{
+    ...
+    // 调度发送
+    Simulator::Schedule(Seconds(0), &VehicleApp::Send, this);
+    ...
+}
+```
+
+事件触发一般只有某些具体的类才有，比如我们常用的 `ns3/socket.h` 头文件里的 `Socket` 类。这个类提供了诸如 `SetRecvCallback` 之类的函数，可以在不同的事件发送时调用所设置的回调函数。关于 `Socket` 类还提供了哪些类似的成员函数，可以阅读参考文献34，一般都是以 `Set` 打头， `Callback` 结尾。下面是一个例子：
+
+```cpp
+// vehicle-app.cc
+void
+VehicleApp::StartApplication()
+{
+    ...
+    m_serverSocket->SetRecvCallback(MakeCallback(&VehicleApp::HandleRead, this));
+    ...
+}
+```
+
+自定义应用一般要重写来自父类的这几个成员函数： `StartApplication` 、 `StopApplication` 和 `GetTypeId` 。其中，最后一个 `GetTypeId` 一般只需添加一些元数据。并且，你会发现挺多自定义的类在继承 ns-3 提供的类时都可以重写这个函数。比较普适的一种写法是：
+
+```cpp
+// vehicle-app.cc
+TypeId
+VehicleApp::GetTypeId()
+{
+    static TypeId tid =
+        TypeId("ns3::VehicleApp").SetParent<Application>().SetGroupName("experiment");
+    return tid;
+}
+```
+
+即在 `SetParent` 函数的泛型参数中指明父类是哪一个和在 `SetGroupName` 的参数中指明组名是什么，组名是可以自定义的，一般一个实验一个组名即可。
+
+另外自定义应用需要提供合适的构造函数，以下面的构造函数为例：
+
+```cpp
+// vehicle-app.cc
+VehicleApp::VehicleApp(const uint16_t rsuServerPort,
+                       const Ipv4Address& rsuIpAddress,
+                       const uint16_t serverPort)
+    : m_rsuServerPort(rsuServerPort),
+      m_rsuIpAddress(rsuIpAddress),
+      m_serverPort(serverPort)
+{
+}
+```
+
+它会影响你创建它时使用的代码：
+
+```cpp
+// experiment.cc
+Ptr<VehicleApp> vehicleApp =
+            CreateObject<VehicleApp>(rsuServerPort, rsuInterfaces.GetAddress(0), vehicleServerPort);
+        stas.Get(i)->AddApplication(vehicleApp);
+```
+
+这行代码是会去找到匹配的构造函数的，如果找不到就会报错。
+
+## 如何自定义数据格式
+
+本仓库提供了三种携带数据的方式：
+
+* 直接往 `Packet` 里的缓冲区写数据
+* 自定义 `Header`
+* 自定义 `Tag`
+
+### 直接往 `Packet` 里的缓冲区写数据
+
+```cpp
+// rsu-app.cc
+uint32_t data = 4399;
+auto buffer = reinterpret_cast<uint8_t*>(&data);
+packet = Create<Packet>(buffer, 4);
+```
+
+这种方式一般不适合格式比较复杂的数据，除非你可以自己提供一套序列化和反序列化的方法。上面的代码中 `reinterpret_cast` 作用是把 `data` 的地址转换为 `uint8_t*` 格式，因为 `Packet` 的构造函数要求的是这种格式。
+
+从 `Packet` 里取数据：
+
+```cpp
+// vehicle-app.cc
+auto* buffer = new uint8_t[4];
+packet->CopyData(buffer, 4);
+```
+
+### 自定义 `Header`
+
+自定义 `Header` 要继承 `ns3/header.h` 头文件里的 `Header` 类，并且一般要重写以下函数：
+
+```cpp
+// header-example.h
+// Register this type，包含一些元数据
+static TypeId GetTypeId();
+// Inherited from header:
+TypeId GetInstanceTypeId() const override;
+// 序列化与反序列化相关
+uint32_t GetSerializedSize() const override;
+void Serialize(Buffer::Iterator start) const override;
+uint32_t Deserialize(Buffer::Iterator start) override;
+void Print(std::ostream& os) const override;
+```
+
+其中 `GetTypeId` 怎么写，我们在前面讲过，这里不再重复。 `GetInstanceTypeId` 的写法一般是返回 `GetTypeId` 函数的调用值：
+
+```cpp
+// header-example.cc
+TypeId HeaderExample::GetInstanceTypeId() const {
+    return GetTypeId();
+}
+```
+
+`Serialize` 是序列化函数，可以把 `Header` 里的数据转换成字节序列。下面是一个例子：
+
+```cpp
+void HeaderExample::Serialize(Buffer::Iterator start) const {
+    start.WriteHtonU32(m_data);
+}
+```
+
+ns-3 的 `Buffer` 提供了几套相近的函数，比如：
+
+```cpp
+void ns3::Buffer::Iterator::WriteHtolsbU32 ( uint32_t  data ) 
+void ns3::Buffer::Iterator::WriteHtonU32 ( uint32_t  data ) 
+void ns3::Buffer::Iterator::WriteU32 ( uint32_t  data ) 
+```
+
+这几套函数之间有一定的区别，但对于使用哪个没有要求，但是读和写的函数之间是有对应关系的：
+
+```cpp
+WriteHtolsb/ReadLsbtoh
+WriteHton/ReadNtoh
+Write/Read
+```
+
+笔者一般习惯使用 `WriteHton/ReadNtoh` ，这套函数是以网络格式读取数据，并以主机格式返回数据的。
+
+另外， ns-3 只提供了序列化和反序列化基础数据的方式，更具体的来说，只提供了序列化和反序列化无符号数的方式。不过对于其它数据类型，也是有办法进行序列化和反序列化的。下面是一个例子：
+
+```cpp
+void
+EventMessage::Serialize(Buffer::Iterator start) const
+{
+    start.WriteHtonU64(*reinterpret_cast<const uint64_t*>(&(m_reporterLocation.x)));
+    start.WriteHtonU64(*reinterpret_cast<const uint64_t*>(&(m_reporterLocation.y)));
+    start.WriteHtonU64(*reinterpret_cast<const uint64_t*>(&(m_reporterLocation.z)));
+    start.WriteHtonU64(static_cast<const uint64_t>((m_timestamp.GetNanoSeconds())));
+    m_randomEvent.Serialize(start);
+}
+```
+
+上面的代码中 `m_reporterLocation` 是 `ns3::Vector` 类型的， ns-3 没有提供序列化和反序列化 `ns3::Vector` 的机制。但是 `ns3::Vector` 里面主要的数据是x、y和z三个坐标，它们是 `double` 类型的。我们是这么序列化 `double` 类型的数据的：把数据的地址转换成 `const uint64_t*` 类型的指针，再对指针进行取值运算，再写入 `Buffer` 中。这也启示我们可以如何序列化和反序列化一些其它的基础类型的数据和复合类型的数据。
