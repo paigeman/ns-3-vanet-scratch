@@ -25,10 +25,12 @@ jobs:
         git clone https://gitlab.com/nsnam/ns-3-dev.git
         cd ns-3-dev/scratch
         pwd
+        ls -a
     - uses: actions/checkout@v4
     - name: Install required packages
       run: |
         pwd
+        ls -a
         sudo apt-get update
         sudo apt-get -y install apt-utils
         sudo apt-get -y install git gcc g++ cmake python3 make ninja-build
