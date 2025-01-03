@@ -22,6 +22,7 @@ jobs:
     steps:
     - name: Git clone ns-3 project
       run: |
+        rm -rf ns-3-dev
         git clone https://gitlab.com/nsnam/ns-3-dev.git
         cd ns-3-dev/scratch
         git clone https://github.com/paigeman/ns-3-vanet-scratch.git
