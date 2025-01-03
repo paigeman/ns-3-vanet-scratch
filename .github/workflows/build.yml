@@ -1,0 +1,45 @@
+# This starter workflow is for a CMake project running on a single platform. There is a different starter workflow if you need cross-platform coverage.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-multi-platform.yml
+name: CMake on a single platform
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Debug
+
+jobs:
+  Ubuntu:
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Git clone ns-3 project
+      run: |
+        git clone https://gitlab.com/nsnam/ns-3-dev.git
+        cd ns-3-dev/scratch
+    - uses: actions/checkout@v4
+    - name: Install required packages
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install apt-utils
+        sudo apt-get -y install git gcc g++ cmake python3 make ninja-build
+        sudo apt-get -y install tcpdump libgsl-dev libxml2-dev
+        sudo apt-get -y install curl unzip tar
+        sudo apt-get -y install ccache
+    - name: Configure CMake
+      run: |
+        ./ns3 configure -d debug --enable-examples --enable-tests --disable-werror -G"Ninja"
+    - name: Build ns-3
+      run: |
+        ./ns3 build
+    - name: Run experiment
+      run: |
+        ./ns3 run "scratch/ns-3-vanet-scratch/experiment --traceFile=scratch/ns-3-vanet-scratch/area1ns2mobility.tcl --configFile=scratch/ns-3-vanet-scratch/area1ns2config.tcl --rsuNum=1"
+        
