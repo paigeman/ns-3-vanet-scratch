@@ -1,5 +1,7 @@
 # How to use this repo
 
+[[Prev]](How-to-start-with-vscode.md) [[中文]](How-to-use-this-repo_zh_CN.md)
+
 ## Git clone this project in the `scratch` directory of ns-3 project
 
 ```shell
@@ -406,6 +408,8 @@ This repository provides three ways to carry data:
 * Customizing a `Header`
 * Customizing a `Tag`
 
+The relevant references are 35-39.
+
 ### Writing data directly to the buffer inside a `Packet`
 
 ```cpp
@@ -424,6 +428,204 @@ Extracting data from a `Packet`:
 auto* buffer = new uint8_t[4];
 packet->CopyData(buffer, 4);
 ```
+
+### Customizing a `Header`
+
+A custom `Header` should inherit from the `Header` class in the `ns3/header.h` header file, and typically the following functions need to be overridden:
+
+```cpp
+// header-example.h
+// Register this type，包含一些元数据
+static TypeId GetTypeId();
+// Inherited from header:
+TypeId GetInstanceTypeId() const override;
+// 序列化与反序列化相关
+uint32_t GetSerializedSize() const override;
+void Serialize(Buffer::Iterator start) const override;
+uint32_t Deserialize(Buffer::Iterator start) override;
+void Print(std::ostream& os) const override;
+```
+
+The implementation of `GetTypeId` has been discussed previously and will not be repeated here. The typical way to write `GetInstanceTypeId` is to return the value of a call to the `GetTypeId` function:
+
+```cpp
+// header-example.cc
+TypeId HeaderExample::GetInstanceTypeId() const {
+    return GetTypeId();
+}
+```
+
+`Serialize` is a serialization function that converts data in the `Header` into a byte sequence. Here is an example:
+
+```cpp
+// header-example.cc
+void HeaderExample::Serialize(Buffer::Iterator start) const {
+    start.WriteHtonU32(m_data);
+}
+```
+
+ns-3's `Buffer` provides several similar functions, for example:
+
+```cpp
+void ns3::Buffer::Iterator::WriteHtolsbU32 ( uint32_t  data ) 
+void ns3::Buffer::Iterator::WriteHtonU32 ( uint32_t  data ) 
+void ns3::Buffer::Iterator::WriteU32 ( uint32_t  data ) 
+```
+
+There are some differences between these sets of functions, and there is no strict requirement on which ones to use, but there is a corresponding relationship between the reading and writing functions:
+
+```cpp
+WriteHtolsb/ReadLsbtoh
+WriteHton/ReadNtoh
+Write/Read
+```
+
+I generally prefer to use the `WriteHton/ReadNtoh` functions, which read data in network byte order and return it in host byte order.
+
+Additionally, ns-3 only provides methods for serializing and deserializing basic data types, specifically unsigned numbers. However, there are ways to serialize and deserialize other data types as well. Here is an example:
+
+```cpp
+void
+EventMessage::Serialize(Buffer::Iterator start) const
+{
+    start.WriteHtonU64(*reinterpret_cast<const uint64_t*>(&(m_reporterLocation.x)));
+    start.WriteHtonU64(*reinterpret_cast<const uint64_t*>(&(m_reporterLocation.y)));
+    start.WriteHtonU64(*reinterpret_cast<const uint64_t*>(&(m_reporterLocation.z)));
+    start.WriteHtonU64(static_cast<const uint64_t>((m_timestamp.GetNanoSeconds())));
+    m_randomEvent.Serialize(start);
+}
+```
+
+In the code above, `m_reporterLocation` is of type `ns3::Vector`. ns-3 does not provide a mechanism for serializing and deserializing `ns3::Vector`. However, the main data within an `ns3::Vector` consists of three coordinates: x, y, and z, which are of type `double`. We serialize data of type `double` as follows: we cast the address of the data to a pointer of type `const uint64_t*`, perform a dereferencing operation on the pointer, and then write it into the `Buffer`. This also suggests how we can serialize and deserialize other primitive data types and compound data types. Additionally, if there is some data that also inherits from `Header`, you can directly call its `Serialize` method, such as `m_randomEvent.Serialize(start);`.
+
+`Deserialize` is the deserialization function, where the order of deserializing data must match the order in which the data was serialized. And typically, the deserialization function is written in the following format:
+
+```cpp
+// header-example.cc
+uint32_t HeaderExample::Deserialize(Buffer::Iterator start) {
+    Buffer::Iterator i = start;
+    ...
+    return i.GetDistanceFrom(start);
+}
+```
+
+The `GetSerializedSize` function returns the size of the serialized data. Taking `HeadExample` as an instance, it only serializes a `uint32_t` type of data, so its `GetSerializedSize` function looks like this:
+
+```cpp
+// header-example.cc
+uint32_t HeaderExample::GetSerializedSize() const {
+    // uint32_t is 4 bytes
+    return 4;
+}
+```
+
+The `Print` function is used to print the contents of an object, which means writing data to an `ostream` in your own way.
+
+Add the custom `Header` to the `Packet` :
+
+```cpp
+// vehicle-app.cc
+HeaderExample header(7758);
+Ptr<Packet> packet = Create<Packet>();
+packet->AddHeader(header);
+```
+
+The receiver extracts the `Header` from the `Packet` :
+
+```cpp
+// rsu-app.cc
+HeaderExample header;
+packet->RemoveHeader(header);
+```
+
+### Customizing a `Tag`
+
+Customizing a `Tag` is essentially similar to customizing a `Header`, except that you inherit from the `Tag` class in the `ns3/tag.h` header file, and the signatures of the `Serialize` and `Deserialize` functions are slightly different.
+
+Additionally, let's elaborate a bit more on the `Serialize` and `Deserialize` functions.
+
+The parameter of the `Serialize` function is a `TagBuffer`, which provides APIs different from those of `Buffer`, offering only a set of read and write mechanisms.
+
+The return type of the `Deserialize` function is `void`, meaning that unlike when inheriting from `Header`, there's no need to first make a copy of the `Buffer::Iterator` before writing your logic:
+
+```cpp
+// tag-example.cc
+void
+TagExample::Deserialize(TagBuffer i)
+{
+    m_data = i.ReadU32();
+}
+```
+
+Add the custom `Tag` to the `Packet` :
+
+```cpp
+// vehicle-app.cc
+TagExample tag(258);
+Ptr<Packet> packet = Create<Packet>();packet->AddByteTag(tag);
+```
+
+The receiver extracts the `Tag` from the `Packet` :
+
+```cpp
+// rsu-app.cc
+TagExample tag;
+packet->FindFirstMatchingByteTag(tag)
+```
+
+The storage and retrieval methods for `Tag` are not limited to this one; for more details, you can refer to reference 39.
+
+### Note
+
+* A custom `Header` should not be used alongside directly writing data to the buffer inside a `Packet`.
+* A single `Packet` should not contain multiple `Header` instances.
+* A custom `Tag` can be used alongside a custom `Header` , but note that the order of storing and retrieving is reversed.
+
+## How to communicate
+
+In ns-3, communication is similar to real life. You can choose either the UDP or TCP protocol. After selecting a protocol, you need to create a socket of that type. Put the data to be carried into the socket and finally send it to the specified IPv4 address.
+
+```cpp
+// vehicle-app.cc
+Ptr<Socket> socket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
+const InetSocketAddress remote(m_rsuIpAddress, m_rsuServerPort);
+HeaderExample header(7758);
+TagExample tag(258);
+Ptr<Packet> packet = Create<Packet>();
+packet->AddHeader(header);
+packet->AddByteTag(tag);
+socket->SendTo(packet, 0, remote);
+```
+
+The server typically sets up a socket bound to the corresponding port, and when data arrives, it invokes the configured callback function:
+
+```cpp
+// rsu-app.cc
+m_serverSocket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
+if (const auto local = InetSocketAddress(Ipv4Address::GetAny(), m_serverPort);
+    m_serverSocket->Bind(local))
+{
+    NS_FATAL_ERROR("Failed to bind socket");
+}
+m_serverSocket->SetRecvCallback(MakeCallback(&RsuApp::HandleRead, this));
+```
+
+In the code above, the first parameter of the `InetSocketAddress` constructor can be replaced with the IPv4 address assigned to this node. Here, `Ipv4Address::GetAny()` serves a similar purpose to `0.0.0.0`.
+
+Note that the server here is not blocking; after binding the port, it does not block to listen on the port, so there is no call to the `Listen` function.
+
+Of course, since we have mentioned that communication in ns-3 is similar to real life, ns-3 also supports the characteristics of each protocol. For example, the broadcast mechanism of UDP:
+
+```cpp
+Ptr<Socket> socket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
+// note: 可能会存在广播风波的问题
+const InetSocketAddress broadcastAddr(Ipv4Address("255.255.255.255"), m_vehiclePort);
+socket->SetAllowBroadcast(true);
+Ptr<Packet> packet = Create<Packet>();
+socket->SendTo(packet, 0, broadcastAddr);
+```
+
+The specific details can be found in the various socket implementations.
 
 ## References
 
@@ -461,3 +663,8 @@ packet->CopyData(buffer, 4);
 32. [transmission rate](https://groups.google.com/g/ns-3-users/c/ymNOB59mNqU/m/n8GvsoY95MYJ)
 33. [ns3::Simulator Class Reference](https://www.nsnam.org/docs/release/3.42/doxygen/dd/de5/classns3_1_1_simulator.html)
 34. [ns3::Socket Class Reference](https://www.nsnam.org/docs/release/3.42/doxygen/d8/db5/classns3_1_1_socket.html)
+35. [Miscellaneous](https://www.nsnam.org/support/faq/miscellaneous/)
+36. [ns3在packet中加入自定义数据](https://blog.csdn.net/information_seeker/article/details/103549631)
+37. [How do I send personalized packets between a client and a server?](https://groups.google.com/g/ns-3-users/c/CPi4WDJWfuY)
+38. [ns3::TagBuffer Class Reference](https://www.nsnam.org/docs/release/3.42/doxygen/d8/d95/classns3_1_1_tag_buffer.html)
+39. [ns3::Packet Class Reference](https://www.nsnam.org/docs/release/3.42/doxygen/d8/df4/classns3_1_1_packet.html)

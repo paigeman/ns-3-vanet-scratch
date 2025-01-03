@@ -1,5 +1,7 @@
 # 如何使用 Visual Studio Code 进行开发
 
+[[English]](How-to-start-with-vscode.md) [[下一篇]](How-to-use-this-repo_zh_CN.md)
+
 ## Linux 解决方案
 
 ### 环境

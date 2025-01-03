@@ -1,5 +1,7 @@
 # 如何使用这个仓库
 
+[[上一篇]](How-to-start-with-vscode_zh_CN.md) [[English]](How-to-use-this-repo.md)
+
 ## 在 ns-3 项目的 `scratch` 目录下使用 Git 下载本仓库
 
 ```shell
@@ -399,6 +401,8 @@ Ptr<VehicleApp> vehicleApp =
 * 自定义 `Header`
 * 自定义 `Tag`
 
+相关的参考文献是35-39。
+
 ### 直接往 `Packet` 里的缓冲区写数据
 
 ```cpp
@@ -447,6 +451,7 @@ TypeId HeaderExample::GetInstanceTypeId() const {
 `Serialize` 是序列化函数，可以把 `Header` 里的数据转换成字节序列。下面是一个例子：
 
 ```cpp
+// header-example.cc
 void HeaderExample::Serialize(Buffer::Iterator start) const {
     start.WriteHtonU32(m_data);
 }
@@ -484,4 +489,175 @@ EventMessage::Serialize(Buffer::Iterator start) const
 }
 ```
 
-上面的代码中 `m_reporterLocation` 是 `ns3::Vector` 类型的， ns-3 没有提供序列化和反序列化 `ns3::Vector` 的机制。但是 `ns3::Vector` 里面主要的数据是x、y和z三个坐标，它们是 `double` 类型的。我们是这么序列化 `double` 类型的数据的：把数据的地址转换成 `const uint64_t*` 类型的指针，再对指针进行取值运算，再写入 `Buffer` 中。这也启示我们可以如何序列化和反序列化一些其它的基础类型的数据和复合类型的数据。
+上面的代码中 `m_reporterLocation` 是 `ns3::Vector` 类型的， ns-3 没有提供序列化和反序列化 `ns3::Vector` 的机制。但是 `ns3::Vector` 里面主要的数据是x、y和z三个坐标，它们是 `double` 类型的。我们是这么序列化 `double` 类型的数据的：把数据的地址转换成 `const uint64_t*` 类型的指针，再对指针进行取值运算，再写入 `Buffer` 中。这也启示我们可以如何序列化和反序列化一些其它的基础类型的数据和复合类型的数据。另外，如果有某种数据也是继承了 `Header` 的，那么可以直接调用它的 `Serialize` 方法，比如 `m_randomEvent.Serialize(start);` 。
+
+`Deserialize` 是反序列化函数，里面反序列化数据的顺序要和序列化数据的顺序一样。并且一般会按照下面的格式编写反序列化函数：
+
+```cpp
+// header-example.cc
+uint32_t HeaderExample::Deserialize(Buffer::Iterator start) {
+    Buffer::Iterator i = start;
+    ...
+    return i.GetDistanceFrom(start);
+}
+```
+
+`GetSerializedSize` 函数返回所序列化的数据的大小，以 `HeadExample` 为例，它只序列化了一个 `uint32_t` 类型的数据，所以它的 `GetSerializedSize` 函数是这样的：
+
+```cpp
+// header-example.cc
+uint32_t HeaderExample::GetSerializedSize() const {
+    // uint32_t is 4 bytes
+    return 4;
+}
+```
+
+`Print` 函数的作用是打印对象内容，就是往 `ostream` 里按照自己的方式写数据即可。
+
+自定义的 `Header` 添加到 `Packet` 中：
+
+```cpp
+// vehicle-app.cc
+HeaderExample header(7758);
+Ptr<Packet> packet = Create<Packet>();
+packet->AddHeader(header);
+```
+
+接收者从 `Packet` 中取出 `Header` ：
+
+```cpp
+// rsu-app.cc
+HeaderExample header;
+packet->RemoveHeader(header);
+```
+
+### 自定义 `Tag`
+
+自定义 `Tag` 和自定义 `Header` 操作基本类似，除了继承的是 `ns3/tag.h` 头文件里的 `Tag` 类，以及 `Serialize` 和 `Deserialize` 函数签名稍微不同。
+
+此外，我们稍微对 `Serialize` 和 `Deserialize` 函数多提几嘴。
+
+`Serialize` 函数的参数是 `TagBuffer` ，它提供的 API 和 `Buffer` 是不同的，只有一套读写机制。
+
+`Deserialize` 函数的返回类型是 `void` ，这意味着不需要像继承 `Header` 一样先对 `Buffer::Iterator` 拷贝一下再编写逻辑：
+
+```cpp
+// tag-example.cc
+void
+TagExample::Deserialize(TagBuffer i)
+{
+    m_data = i.ReadU32();
+}
+```
+
+自定义的 `Tag` 添加到 `Packet` 中：
+
+```cpp
+// vehicle-app.cc
+TagExample tag(258);
+Ptr<Packet> packet = Create<Packet>();packet->AddByteTag(tag);
+```
+
+接收者从 `Packet` 中取出 `Tag` ：
+
+```cpp
+// rsu-app.cc
+TagExample tag;
+packet->FindFirstMatchingByteTag(tag)
+```
+
+`Tag` 的存放方式和获取方式不只这一种，具体的可以阅读参考文献39。
+
+### 注意
+
+* 自定义 `Header` 不能和直接往 `Packet` 里的缓冲区写数据一起使用
+* 一个 `Packet` 里不能存放多个 `Header`
+* 自定义 `Tag` 可以和自定义 `Header` 一起使用，但要注意存放和获取的顺序是颠倒的
+
+## 如何通信
+
+ns-3 中的通信和现实生活是类似的，你可以选择 UDP 或者 TCP 协议。选择好协议后，你需要创建该类型的套接字。把需要携带的数据放进套接字中，最后发送出去到指定 IPv4 地址。
+
+```cpp
+// vehicle-app.cc
+Ptr<Socket> socket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
+const InetSocketAddress remote(m_rsuIpAddress, m_rsuServerPort);
+HeaderExample header(7758);
+TagExample tag(258);
+Ptr<Packet> packet = Create<Packet>();
+packet->AddHeader(header);
+packet->AddByteTag(tag);
+socket->SendTo(packet, 0, remote);
+```
+
+服务端一般是设置一个套接字绑定对应端口，当有数据到达时，会调用设置的回调函数：
+
+```cpp
+// rsu-app.cc
+m_serverSocket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
+if (const auto local = InetSocketAddress(Ipv4Address::GetAny(), m_serverPort);
+    m_serverSocket->Bind(local))
+{
+    NS_FATAL_ERROR("Failed to bind socket");
+}
+m_serverSocket->SetRecvCallback(MakeCallback(&RsuApp::HandleRead, this));
+```
+
+上面的代码中 `InetSocketAddress` 的构造器的第一个参数可以更换为分配给此节点的 IPv4 地址，这里 `Ipv4Address::GetAny()` 的作用和 `0.0.0.0` 的作用是类似的。
+
+注意这里服务端不是阻塞式的，在绑定端口后，没有阻塞地监听端口，所以这里没有调用 `Listen` 函数。
+
+当然，既然说过 ns-3 的通信和现实生活是类似的，那么 ns-3 也支持每种协议的特性。比如 UDP 的广播机制：
+
+```cpp
+Ptr<Socket> socket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
+// note: 可能会存在广播风波的问题
+const InetSocketAddress broadcastAddr(Ipv4Address("255.255.255.255"), m_vehiclePort);
+socket->SetAllowBroadcast(true);
+Ptr<Packet> packet = Create<Packet>();
+socket->SendTo(packet, 0, broadcastAddr);
+```
+
+具体的内容可以查看各种套接字实现。
+
+## References
+
+1. [SUMO 从入门到基础 SUMO入门一篇就够了](https://blog.csdn.net/qilie_32/article/details/127201612)
+2. [使用OSM生成路网](https://www.bilibili.com/video/BV1H7411F76B/?p=4&vd_source=95cbfe5a1adb7fe10e7dfdf77f3ea7d8)
+3. [SUMO仿真教程（4）—— 由openstreetmap生成路网文件](https://blog.csdn.net/weixin_50632459/article/details/115449397)
+4. [（二）osm格式文件如何导入sumo（包括建筑物边界的生成）](https://blog.csdn.net/lianginging/article/details/137744327)
+5. [polyconvert](https://sumo.dlr.de/docs/polyconvert.html)
+6. [How do I maintain a constant number of vehicles in the net?](https://sumo.dlr.de/docs/FAQ.html#how_do_i_maintain_a_constant_number_of_vehicles_in_the_net)
+7. [how can I set the vehicle to drive at a constant speed in sumo file?](https://stackoverflow.com/questions/64533948/how-can-i-set-the-vehicle-to-drive-at-a-constant-speed-in-sumo-file)
+8. [Automatically generating a vehicle type](https://sumo.dlr.de/docs/Tools/Trip.html#automatically_generating_a_vehicle_type)
+9. [`***.sumo.cfg` 配置文件生成](https://github.com/Internet-of-Vehicles-Code/Veins_SUMO_OMNeTpp?tab=readme-ov-file#211-%E4%BD%BF%E7%94%A8netconvert%E8%BD%AC%E6%8D%A2%E5%B7%A5%E5%85%B7)
+10. [Strange behavior when using randomTrips.py](https://github.com/eclipse-sumo/sumo/issues/15306)
+11. [DFROUTER speed conflict](https://github.com/eclipse-sumo/sumo/issues/6951#issuecomment-620675996)
+12. [sumo+ns3](https://blog.csdn.net/LUYAO_LY/article/details/117383835)
+13. [Trace File Generation](https://sumo.dlr.de/docs/Tutorials/Trace_File_Generation.html)
+14. [Vanet：生成ns3仿真所需的车辆移动文件（*.tcl）](https://blog.csdn.net/hanweixiao/article/details/122407194)
+15. [SUMO产生trace并在NS3中调用实例](https://blog.csdn.net/lovehuishouzan/article/details/96751782)
+16. [sdsxpln/IoTWNT](https://github.com/sdsxpln/IoTWNT)
+17. [TraceExporter](https://sumo.dlr.de/docs/Tools/TraceExporter.html)
+18. [Thread: [sumo-user] Add RSU on road map](https://sourceforge.net/p/sumo/mailman/sumo-user/thread/CAHJk9CcoH3XHojVvfe+JHcUX+zsLYcnOxd14VW1daJd2nKObeg@mail.gmail.com/)
+19. [ns3：搭建vanet的移动模型](https://blog.csdn.net/hanweixiao/article/details/122407904)
+20. <https://github.com/ms-van3t-devs/ms-van3t/blob/a40ccaa833b8e06569c92c594703c4239ddc2a29/src/automotive/examples/v2i-areaSpeedAdvisor-80211p.cc#L1-L368>
+21. [VANET projects examples using ns3](https://ns3simulation.com/vanet-projects-examples-using-ns3/)
+22. <https://github.com/cqu-bdsc/NS3-example/blob/30f4d87fdb45c43305df4e7c4b6534ec0a2c9bcd/scratch/vanet-demo-case-3.cc#L1-L729>
+23. [How can I add a Road Side Unit into a NS-2 and Sumo Simulation](https://stackoverflow.com/questions/47545100/how-can-i-add-a-road-side-unit-into-a-ns-2-and-sumo-simulation)
+24. [RSU (road side unit) implementation in VANET using ns-3](https://groups.google.com/g/ns-3-users/c/GU5yhRKYKwc)
+25. [物联网与无线网络实验资源](https://github.com/sdsxpln/IoTWNT)
+26. [ns3::PositionAllocator Class Reference](https://www.nsnam.org/docs/release/3.42/doxygen/df/d7b/classns3_1_1_position_allocator.html)
+27. [Default()](https://www.nsnam.org/docs/release/3.42/doxygen/de/d95/classns3_1_1_yans_wifi_channel_helper.html#abf7de2e0916e7188a8434a363cb96183)
+28. [34.2.1.1. YansWifiChannelHelper](https://www.nsnam.org/docs/models/html/wifi-user.html#yanswifichannelhelper)
+29. [28. Propagation](https://www.nsnam.org/docs/models/html/propagation.html)
+30. [Detailed Description](https://www.nsnam.org/docs/release/3.42/doxygen/d0/d39/classns3_1_1_fixed_rss_loss_model.html#details)
+31. [802.11物理层技术讲解](https://blog.csdn.net/weixin_42353331/article/details/86504529)
+32. [transmission rate](https://groups.google.com/g/ns-3-users/c/ymNOB59mNqU/m/n8GvsoY95MYJ)
+33. [ns3::Simulator Class Reference](https://www.nsnam.org/docs/release/3.42/doxygen/dd/de5/classns3_1_1_simulator.html)
+34. [ns3::Socket Class Reference](https://www.nsnam.org/docs/release/3.42/doxygen/d8/db5/classns3_1_1_socket.html)
+35. [Miscellaneous](https://www.nsnam.org/support/faq/miscellaneous/)
+36. [ns3在packet中加入自定义数据](https://blog.csdn.net/information_seeker/article/details/103549631)
+37. [How do I send personalized packets between a client and a server?](https://groups.google.com/g/ns-3-users/c/CPi4WDJWfuY)
+38. [ns3::TagBuffer Class Reference](https://www.nsnam.org/docs/release/3.42/doxygen/d8/d95/classns3_1_1_tag_buffer.html)
+39. [ns3::Packet Class Reference](https://www.nsnam.org/docs/release/3.42/doxygen/d8/df4/classns3_1_1_packet.html)
