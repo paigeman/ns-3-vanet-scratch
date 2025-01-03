@@ -35,7 +35,7 @@ jobs:
         sudo apt-get -y install ccache
     - name: Configure CMake
       run: |
-        ./ns3 configure -d debug --enable-examples --enable-tests --disable-werror -G"Ninja"
+        ../../ns3 configure -d debug --enable-examples --enable-tests --disable-werror -G"Ninja"
     - name: Build ns-3
       run: |
         ./ns3 build
