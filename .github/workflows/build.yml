@@ -23,15 +23,11 @@ jobs:
     - name: Git clone ns-3 project
       run: |
         git clone https://gitlab.com/nsnam/ns-3-dev.git
-        ls -a
         cd ns-3-dev/scratch
-        pwd
-        ls -a
-    - uses: actions/checkout@v4
+        git clone https://github.com/paigeman/ns-3-vanet-scratch.git
+    # - uses: actions/checkout@v4
     - name: Install required packages
       run: |
-        pwd
-        ls -a
         sudo apt-get update
         sudo apt-get -y install apt-utils
         sudo apt-get -y install git gcc g++ cmake python3 make ninja-build
@@ -40,12 +36,14 @@ jobs:
         sudo apt-get -y install ccache
     - name: Configure CMake
       run: |
-        pwd
-        ./ns3 configure -d debug --enable-examples --enable-tests --disable-werror -G"Ninja"
+        cd ns-3-dev
+        ./ns3 configure -d ${{env.BUILD_TYPE}} --enable-examples --enable-tests --disable-werror -G"Ninja"
     - name: Build ns-3
       run: |
+        cd ns-3-dev
         ./ns3 build
     - name: Run experiment
       run: |
+        cd ns-3-dev
         ./ns3 run "scratch/ns-3-vanet-scratch/experiment --traceFile=scratch/ns-3-vanet-scratch/area1ns2mobility.tcl --configFile=scratch/ns-3-vanet-scratch/area1ns2config.tcl --rsuNum=1"
         
