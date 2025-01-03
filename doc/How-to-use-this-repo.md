@@ -395,7 +395,6 @@ It will affect the code you use to create it:
 // experiment.cc
 Ptr<VehicleApp> vehicleApp =
             CreateObject<VehicleApp>(rsuServerPort, rsuInterfaces.GetAddress(0), vehicleServerPort);
-        stas.Get(i)->AddApplication(vehicleApp);
 ```
 
 This line of code will attempt to find a matching constructor, and if it cannot find one, it will result in an error.
