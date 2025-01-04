@@ -1,6 +1,6 @@
 # This starter workflow is for a CMake project running on a single platform. There is a different starter workflow if you need cross-platform coverage.
 # See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-multi-platform.yml
-name: CMake on a single platform
+name: build
 
 on:
   push:
@@ -10,7 +10,8 @@ on:
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Debug
+  BUILD_TYPE: debug
+  NS_3_VERSION: ns-3.43
 
 jobs:
   Ubuntu:
@@ -20,26 +21,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Check out the pull request or main branch
+      uses: actions/checkout@v4
+      with:
+        # For pull requests, use the source branch; otherwise, use the current branch
+        ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+        fetch-depth: 0 # Fetch all history to ensure complete build context
     - name: Git clone ns-3 project
       run: |
+        cd ..
+        rm -rf ns-3-dev
         git clone https://gitlab.com/nsnam/ns-3-dev.git
-        cd ns-3-dev/scratch
-    - uses: actions/checkout@v4
+        cd ns-3-dev
+        git checkout ${{env.NS_3_VERSION}}
+    - name: Copy ns-3-vanet-scratch to ns-3-dev/scratch
+      run: |
+        cp -r ../ns-3-vanet-scratch ../ns-3-dev/scratch
+        cat ../ns-3-dev/scratch/ns-3-vanet-scratch/CMakeLists.txt
     - name: Install required packages
       run: |
         sudo apt-get update
         sudo apt-get -y install apt-utils
         sudo apt-get -y install git gcc g++ cmake python3 make ninja-build
-        sudo apt-get -y install tcpdump libgsl-dev libxml2-dev
+        sudo apt-get -y install libboost-all-dev libgsl-dev libxml2-dev
         sudo apt-get -y install curl unzip tar
-        sudo apt-get -y install ccache
+        sudo apt-get -y install cmake-format
     - name: Configure CMake
       run: |
-        ../../ns3 configure -d debug --enable-examples --enable-tests --disable-werror -G"Ninja"
+        cd ../ns-3-dev
+        ./ns3 clean
+        ./ns3 configure -d ${{env.BUILD_TYPE}} --disable-werror
     - name: Build ns-3
       run: |
+        cd ../ns-3-dev
         ./ns3 build
     - name: Run experiment
       run: |
+        cd ../ns-3-dev
+        export NS_LOG=experiment=debug:VehicleApp=debug:RsuApp=debug
         ./ns3 run "scratch/ns-3-vanet-scratch/experiment --traceFile=scratch/ns-3-vanet-scratch/area1ns2mobility.tcl --configFile=scratch/ns-3-vanet-scratch/area1ns2config.tcl --rsuNum=1"
-        
