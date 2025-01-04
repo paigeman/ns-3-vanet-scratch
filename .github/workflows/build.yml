@@ -11,6 +11,7 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: debug
+  NS_3_VERSION: ns-3.43
 
 jobs:
   Ubuntu:
@@ -31,6 +32,7 @@ jobs:
         cd ..
         rm -rf ns-3-dev
         git clone https://gitlab.com/nsnam/ns-3-dev.git
+        git checkout ${{env.NS_3_VERSION}}
     - name: Copy ns-3-vanet-scratch to ns-3-dev/scratch
       run: |
         cp -r ../ns-3-vanet-scratch ../ns-3-dev/scratch
