@@ -34,7 +34,7 @@ jobs:
     - name: Copy ns-3-vanet-scratch to ns-3-dev/scratch
       run: |
         cp -r ../ns-3-vanet-scratch ../ns-3-dev/scratch
-        ls ../ns-3-dev/scratch
+        cat ../ns-3-dev/scratch/ns-3-vanet-scratch/CMakeLists.txt
     - name: Install required packages
       run: |
         sudo apt-get update
@@ -45,7 +45,7 @@ jobs:
         sudo apt-get -y install cmake-format
     - name: Configure CMake
       run: |
-        cd ns-3-dev
+        cd ../ns-3-dev
         ./ns3 clean
         ./ns3 configure -d ${{env.BUILD_TYPE}} --disable-werror
     - name: Build ns-3
