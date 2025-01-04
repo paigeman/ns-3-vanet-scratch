@@ -32,6 +32,7 @@ jobs:
         cd ..
         rm -rf ns-3-dev
         git clone https://gitlab.com/nsnam/ns-3-dev.git
+        cd ns-3-dev
         git checkout ${{env.NS_3_VERSION}}
     - name: Copy ns-3-vanet-scratch to ns-3-dev/scratch
       run: |
