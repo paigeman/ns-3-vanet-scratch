@@ -47,5 +47,5 @@ jobs:
       run: |
         cd ns-3-dev
         ls scratch/ns-3-vanet-scratch
-        ./ns3 run scratch/ns-3-vanet-scratch/experiment --traceFile=scratch/ns-3-vanet-scratch/area1ns2mobility.tcl --configFile=scratch/ns-3-vanet-scratch/area1ns2config.tcl --rsuNum=1
+        ./ns3 run scratch/ns-3-vanet-scratch/experiment -- --traceFile=scratch/ns-3-vanet-scratch/area1ns2mobility.tcl --configFile=scratch/ns-3-vanet-scratch/area1ns2config.tcl --rsuNum=1
         
