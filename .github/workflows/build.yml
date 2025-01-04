@@ -33,7 +33,7 @@ jobs:
         git clone https://gitlab.com/nsnam/ns-3-dev.git
     - name: Copy ns-3-vanet-scratch to ns-3-dev/scratch
       run: |
-        cp -r . ../ns-3-dev/scratch
+        cp -r ./ns-3-vanet-scratch ../ns-3-dev/scratch
         ls ../ns-3-dev/scratch
     - name: Install required packages
       run: |
