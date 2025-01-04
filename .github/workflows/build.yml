@@ -34,10 +34,11 @@ jobs:
         sudo apt-get -y install git gcc g++ cmake python3 make ninja-build
         sudo apt-get -y install tcpdump libgsl-dev libxml2-dev
         sudo apt-get -y install curl unzip tar
-        sudo apt-get -y install ccache
+        sudo apt-get -y install cmake-format
     - name: Configure CMake
       run: |
         cd ns-3-dev
+        ./ns3 clean
         ./ns3 configure -d ${{env.BUILD_TYPE}} --disable-werror
     - name: Build ns-3
       run: |
