@@ -1,5 +1,7 @@
 # ns-3-vanet-scratch
 
+[![build](https://github.com/paigeman/ns-3-vanet-scratch/actions/workflows/build.yml/badge.svg)](https://github.com/paigeman/ns-3-vanet-scratch/actions/workflows/build.yml)
+
 [中文](README_zh_CN.md)
 
 ## Introduction
