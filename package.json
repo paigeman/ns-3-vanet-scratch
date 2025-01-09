@@ -1,0 +1,30 @@
+{
+  "name": "ns-3-vanet-scratch",
+  "version": "1.0.0",
+  "description": "This repository can be used as a framework for simulating VANET(Vehicular ad-hoc network) using ns-3.",
+  "main": "index.js",
+  "scripts": {
+    "docs:dev": "vuepress-vite dev docs",
+    "docs:build": "vuepress-vite build docs",
+    "docs:clean-dev": "vuepress-vite dev docs --clean-cache",
+    "docs:update-package": "npx vp-update"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paigeman/ns-3-vanet-scratch.git"
+  },
+  "author": "fade",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/paigeman/ns-3-vanet-scratch/issues"
+  },
+  "homepage": "https://github.com/paigeman/ns-3-vanet-scratch#readme",
+  "devDependencies": {
+    "@vuepress/bundler-vite": "2.0.0-rc.19",
+    "@vuepress/theme-default": "^2.0.0-rc.69",
+    "sass-embedded": "^1.83.0",
+    "vuepress": "2.0.0-rc.19",
+    "vue": "^3.5.13",
+    "vuepress-theme-hope": "2.0.0-rc.67"
+  }
+}

@@ -1,6 +1,6 @@
 # 如何使用这个仓库
 
-[[上一篇]](How-to-start-with-vscode_zh_CN.md) [[English]](How-to-use-this-repo.md)
+[[上一篇]](How-to-start-with-vscode_zh_CN.md) [[English]](../How-to-use-this-repo.md)
 
 ## 在 ns-3 项目的 `scratch` 目录下使用 Git 下载本仓库
 
@@ -13,7 +13,7 @@ git clone https://github.com/paigeman/ns-3-vanet-scratch.git
 
 在 Visual Studio Code 中，你可以这么做：
 
-![image](resources/ca5ad227a5b432afd9576746c1457889aa760265e0e47feb293ae8d917d9c6e5.png)
+![image](../resources/ca5ad227a5b432afd9576746c1457889aa760265e0e47feb293ae8d917d9c6e5.png)
 
 ## 如何配置 SUMO 相关的参数
 
@@ -31,7 +31,7 @@ python traceExporter.py --fcd-input sumoTrace.xml --ns2mobility-output ns2mobili
 
 然后你可以在 `.vscode/settings.json` 文件里替换 `traceFile` 和 `configFile` 的值：
 
-![image](resources/308eff8b68ec768aca1af19100e66782be8d4427e76e7aa3ac4b6e4ec78f956f.png)
+![image](../resources/308eff8b68ec768aca1af19100e66782be8d4427e76e7aa3ac4b6e4ec78f956f.png)
 
 `traceFile` 和 `configFile` 这两个参数在代码 `experiment.cc` 中定义和解析的部分是：
 
@@ -245,7 +245,7 @@ phy.EnablePcap("experiment", rsuDevices.Get(0));
 
 再用 Wireshark 打开生成的文件选择一个数据包后查看物理层对应字段：
 
-![image](resources/ce4d45909eddcab75882ce1e2ac26c3c4401be61ebd005f3464e64798eeb014f.png)
+![image](../resources/ce4d45909eddcab75882ce1e2ac26c3c4401be61ebd005f3464e64798eeb014f.png)
 
 如果想要更换信道带宽，可以更换 `DataMode` 和 `ControlMode` 的值。但是 IEEE 802.11 每种标准所允许使用的速率是规定好了的，这一点可以参考参考文献31。至于每种速率在代码中的表示，笔者没有找到有相关文档完整准确的描述了这一点，但是可以看看参考文献32，这里稍微有些描述。或者读者可以看看类 `WifiPhy` 和其它代码，看看是否能从中找到对应的规则。
 

@@ -1,6 +1,6 @@
 # 如何使用 Visual Studio Code 进行开发
 
-[[English]](How-to-start-with-vscode.md) [[下一篇]](How-to-use-this-repo_zh_CN.md)
+[[English]](../How-to-start-with-vscode.md) [[下一篇]](How-to-use-this-repo_zh_CN.md)
 
 ## Linux 解决方案
 
@@ -31,55 +31,55 @@ git clone https://gitlab.com/nsnam/ns-3-dev.git
 
 安装一些插件：
 
-![image](resources/398676436-d560ad75-d65f-4a71-8106-804c38782189.png)
+![image](../resources/398676436-d560ad75-d65f-4a71-8106-804c38782189.png)
 
-![image](resources/398676827-05bd49da-bd6d-4736-b1cf-78fcb2fdd4a9.png)
+![image](../resources/398676827-05bd49da-bd6d-4736-b1cf-78fcb2fdd4a9.png)
 
-![image](resources/398689614-b8d83673-7328-470e-a1a6-865056909cad.png)
+![image](../resources/398689614-b8d83673-7328-470e-a1a6-865056909cad.png)
 
 用 Visual Studio Code 打开 ns-3 的项目并配置它。
 
 按 `Ctrl+shift+P` 键并选择：
 
-![image](resources/398678439-9cbac1ef-825d-44b2-88d6-bc4e77e18c00.png)
+![image](../resources/398678439-9cbac1ef-825d-44b2-88d6-bc4e77e18c00.png)
 
 选择你电脑上存在的工具链：
 
-![image](resources/398678756-ea09e82f-5b05-416a-8083-7b37db196345.png)
+![image](../resources/398678756-ea09e82f-5b05-416a-8083-7b37db196345.png)
 
 然后你可以看到 CMake 开始工作。
 
-![image](resources/398679444-5cd1f0a5-73f2-472a-88e8-7de6cc9c838d.png)
+![image](../resources/398679444-5cd1f0a5-73f2-472a-88e8-7de6cc9c838d.png)
 
 为了看到一些输出，设置 CMAKE_BUILD_TYPE 的值为 Debug ：
 
-![image](resources/398684841-e3341350-93e2-4f31-9231-29c2d36c5bb0.png)
+![image](../resources/398684841-e3341350-93e2-4f31-9231-29c2d36c5bb0.png)
 
 按 `Ctrl+shift+P` 键并选择：
 
-![image](resources/398685681-ebaf0017-526a-4d26-ab98-8e5938131d6e.png)
+![image](../resources/398685681-ebaf0017-526a-4d26-ab98-8e5938131d6e.png)
 
 为了构建官方示例，设置 NS3_EXAMPLES 的值为 ON ：
 
-![image](resources/398686663-2c2241b7-081a-43d9-a387-fd5df2141388.png)
+![image](../resources/398686663-2c2241b7-081a-43d9-a387-fd5df2141388.png)
 
 ### 构建项目
 
-![image](resources/398690058-eb7b8917-66bf-44cc-9169-8723f7ec14c4.png)
+![image](../resources/398690058-eb7b8917-66bf-44cc-9169-8723f7ec14c4.png)
 
 ### 测试 ns-3
 
 打开 `examples/tutorial/first.cc` 并运行：
 
-![image](resources/398691283-4847e45e-75d4-4c4e-b77c-e6064c56aa4e.png)
+![image](../resources/398691283-4847e45e-75d4-4c4e-b77c-e6064c56aa4e.png)
 
-![image](resources/398691410-84d48a5b-4572-442d-852d-69ac98e30cb0.png)
+![image](../resources/398691410-84d48a5b-4572-442d-852d-69ac98e30cb0.png)
 
 ### 其它配置
 
 Visual Studio Code 原来的 C/C++ IntelliSense engine 效果并不好。我们可以使用 clangd 插件作为代替。
 
-![image](resources/399157078-cd67d5a1-edd8-4d10-9bdb-db94a6e81717.png)
+![image](../resources/399157078-cd67d5a1-edd8-4d10-9bdb-db94a6e81717.png)
 
 你需要确保你的系统上安装了 clangd 。如果没有请尝试：
 
@@ -89,21 +89,21 @@ sudo apt -y install clangd
 
 然后禁用原来的 Visual Studio Code C/C++ IntelliSense engine ：
 
-![image](resources/399158018-d194cf2d-3152-458f-a827-d007e1eb15f0.png)
+![image](../resources/399158018-d194cf2d-3152-458f-a827-d007e1eb15f0.png)
 
-![image](resources/399158030-4dd6dc98-f58c-40d0-a76c-a0b432202623.png)
+![image](../resources/399158030-4dd6dc98-f58c-40d0-a76c-a0b432202623.png)
 
 ns-3 官方提供了编码风格，你可以安装以下插件来启用并在设置里开启保存时格式化：
 
-![image](resources/399158253-c49cf371-3a22-4d05-8f83-46c4c5784e3d.png)
+![image](../resources/399158253-c49cf371-3a22-4d05-8f83-46c4c5784e3d.png)
 
-![image](resources/399158270-942a1990-2390-41fc-bfe1-314b8dba5306.png)
+![image](../resources/399158270-942a1990-2390-41fc-bfe1-314b8dba5306.png)
 
-![image](resources/399159463-66e01305-de48-4232-8821-b1d806e6895c.png)
+![image](../resources/399159463-66e01305-de48-4232-8821-b1d806e6895c.png)
 
 但是如果同时安装了 `clangd` 和 `Clang-Format` ，可能会出现 formatter 无法正常工作的情况，因为这里有两个 formatter 。这里可以选择一个默认的 formatter ：
 
-![image](resources/020a7be81569489c4da75d16183f6d6eff66797ba444c75cd817c0aea4b63d37.png)
+![image](../resources/020a7be81569489c4da75d16183f6d6eff66797ba444c75cd817c0aea4b63d37.png)
 
 ### 在使用 CMake 时如何在 Visual Studio Code 里传递环境变量和程序参数给程序
 
@@ -122,11 +122,11 @@ ns-3 官方提供了编码风格，你可以安装以下插件来启用并在设
     }
 ```
 
-![image](resources/399158853-04d6be8f-eb1f-4253-ad6a-8fd6544f773e.png)
+![image](../resources/399158853-04d6be8f-eb1f-4253-ad6a-8fd6544f773e.png)
 
 ### 如何运行或调试程序
 
-![image](resources/399165588-7c4a87a0-8132-4cdb-a530-fd1771d72d19.png)
+![image](../resources/399165588-7c4a87a0-8132-4cdb-a530-fd1771d72d19.png)
 
 ### 参考文献
 

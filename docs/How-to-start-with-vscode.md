@@ -1,6 +1,6 @@
 # How to start with Visual Studio Code
 
-[[中文]](How-to-start-with-vscode_zh_CN.md) [[Next]](How-to-use-this-repo.md)
+[[中文]](zh/How-to-start-with-vscode_zh_CN.md) [[Next]](How-to-use-this-repo.md)
 
 ## Linux Solution
 

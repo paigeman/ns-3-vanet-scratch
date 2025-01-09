@@ -1,6 +1,6 @@
 # How to use this repo
 
-[[Prev]](How-to-start-with-vscode.md) [[中文]](How-to-use-this-repo_zh_CN.md)
+[[Prev]](How-to-start-with-vscode.md) [[中文]](zh/How-to-use-this-repo_zh_CN.md)
 
 ## Git clone this project in the `scratch` directory of ns-3 project
 
