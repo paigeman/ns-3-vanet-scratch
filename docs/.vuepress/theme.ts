@@ -15,7 +15,7 @@ export default hopeTheme({
 
   repo: "paigeman/ns-3-vanet-scratch",
 
-  docsDir: "src",
+  docsDir: "docs",
 
   locales: {
     "/": {
