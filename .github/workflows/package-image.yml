@@ -1,0 +1,13 @@
+name: package image
+on: [push]
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker Image
+        run: docker build --file Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/ns-3-vanet-scratch:latest .
+      - name: Docker Login
+        run: docker login -u  ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Push to Docker Hub
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/ns-3-vanet-scratch:latest
