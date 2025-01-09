@@ -1,0 +1,1 @@
+docker run -d -p 80:80 fade2333/ns-3-vanet-scratch:latest
