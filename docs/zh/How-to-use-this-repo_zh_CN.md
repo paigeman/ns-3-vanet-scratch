@@ -340,7 +340,7 @@ VehicleApp::StartApplication()
 }
 ```
 
-事件触发一般只有某些具体的类才有，比如我们常用的 `ns3/socket.h` 头文件里的 `Socket` 类。这个类提供了诸如 `SetRecvCallback` 之类的函数，可以在不同的事件发送时调用所设置的回调函数。关于 `Socket` 类还提供了哪些类似的成员函数，可以阅读参考文献34，一般都是以 `Set` 打头， `Callback` 结尾。下面是一个例子：
+事件触发一般只有某些具体的类才有，比如我们常用的 `ns3/socket.h` 头文件里的 `Socket` 类。这个类提供了诸如 `SetRecvCallback` 之类的函数，可以在不同的事件发生时调用所设置的回调函数。关于 `Socket` 类还提供了哪些类似的成员函数，可以阅读参考文献34，一般都是以 `Set` 打头， `Callback` 结尾。下面是一个例子：
 
 ```cpp
 // vehicle-app.cc
@@ -604,7 +604,7 @@ m_serverSocket->SetRecvCallback(MakeCallback(&RsuApp::HandleRead, this));
 
 上面的代码中 `InetSocketAddress` 的构造器的第一个参数可以更换为分配给此节点的 IPv4 地址，这里 `Ipv4Address::GetAny()` 的作用和 `0.0.0.0` 的作用是类似的。
 
-注意这里服务端不是阻塞式的，在绑定端口后，没有阻塞地监听端口，所以这里没有调用 `Listen` 函数。
+注意这里的服务端不是阻塞式的，在绑定端口后，没有阻塞地监听端口，所以这里没有调用 `Listen` 函数。
 
 当然，既然说过 ns-3 的通信和现实生活是类似的，那么 ns-3 也支持每种协议的特性。比如 UDP 的广播机制：
 
