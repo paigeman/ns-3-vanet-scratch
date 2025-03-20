@@ -511,6 +511,8 @@ uint32_t HeaderExample::GetSerializedSize() const {
 }
 ```
 
+另外，注意 `GetSerializedSize` 函数返回的大小应与 `Serialize` 函数中调用的序列化函数相匹配。举个例子，假设一个继承自 `ns3::Header` 的类只有一个 `uint8_t` 类型的数据，而你希望以之前提到的"以网络格式读取数据，并以主机格式返回数据"的方式进行序列化。由于 ns-3 官方没有提供 `WriteHtonU8` 函数来序列化单字节数据，因此可以使用 `WriteHtonU16` 来序列化该数据。在这种情况下，`GetSerializedSize` 函数的返回值应为 2，而不是 1。
+
 `Print` 函数的作用是打印对象内容，就是往 `ostream` 里按照自己的方式写数据即可。
 
 自定义的 `Header` 添加到 `Packet` 中：
@@ -529,6 +531,8 @@ packet->AddHeader(header);
 HeaderExample header;
 packet->RemoveHeader(header);
 ```
+
+如果自定义的 `Header` 是一个空类，即没有任何非静态数据成员的类，那么即使在发送数据时给 `Packet` 添加了 `ByteTag` ，接收方也不会接收到这个数据，对应的回调事件不会被触发。
 
 ### 自定义 `Tag`
 

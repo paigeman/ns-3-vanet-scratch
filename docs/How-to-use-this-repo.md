@@ -518,6 +518,8 @@ uint32_t HeaderExample::GetSerializedSize() const {
 }
 ```
 
+Additionally, note that the size returned by the `GetSerializedSize` function should match the serialization functions called within the `Serialize` function. For example, suppose a class inheriting from `ns3::Header` contains only one `uint8_t` type of data, and you want to serialize it in the previously mentioned way of "reading data in network format and returning it in host format." Since ns-3 does not officially provide a `WriteHtonU8` function for serializing single-byte data, you can use `WriteHtonU16` to serialize this data. In this case, the return value of the `GetSerializedSize` function should be 2 instead of 1.
+
 The `Print` function is used to print the contents of an object, which means writing data to an `ostream` in your own way.
 
 Add the custom `Header` to the `Packet` :
@@ -536,6 +538,8 @@ The receiver extracts the `Header` from the `Packet` :
 HeaderExample header;
 packet->RemoveHeader(header);
 ```
+
+If the custom `Header` is an empty class, i.e., a class without any non-static data members, then even if a `ByteTag` is added to the `Packet` when sending data, the receiver will not receive this data, and the corresponding callback event will not be triggered.
 
 ### Customizing a `Tag`
 
